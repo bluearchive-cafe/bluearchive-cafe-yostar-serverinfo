@@ -1,0 +1,15 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "bluearchive-cafe-yostar-serverinfo",
+	"main": "src/index.js",
+	"compatibility_date": "2025-12-25",
+	"observability": {
+		"enabled": true
+	},
+	"kv_namespaces": [
+		{
+			"binding": "SERVERINFO",
+			"id": "9d35490828544a4394113ffda0b0e390"
+		}
+	]
+}
