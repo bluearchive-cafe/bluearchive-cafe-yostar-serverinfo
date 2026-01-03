@@ -1,11 +1,39 @@
+function patchCnVoice(jsonString) {
+  let data;
+  try { data = JSON.parse(jsonString); } catch { return jsonString; }
+
+  const walk = (obj) => {
+    if (typeof obj === "string") {
+      return obj.replace(
+        "prod-clientpatch.bluearchive.cafe",
+        "cn-voice.prod-clientpatch.bluearchive.cafe"
+      );
+    }
+    if (Array.isArray(obj)) return obj.map(walk);
+    if (obj && typeof obj === "object") {
+      for (const key of Object.keys(obj)) obj[key] = walk(obj[key]);
+      return obj;
+    }
+    return obj;
+  };
+
+  const patched = walk(data);
+  return JSON.stringify(patched, null, 2);
+}
+
 export default {
   async fetch(request, env, ctx) {
     const key = new URL(request.url).pathname.slice(1);
+    const hostname = new URL(request.url).hostname;
+    const isCnVoice = hostname === "cn-voice.yostar-serverinfo.bluearchive.cafe";
     if (!key || key.includes("/") || !key.startsWith("r") || !key.endsWith(".json"))
       return await fetch("https://yostar-serverinfo.bluearchiveyostar.com/" + key);
 
     let value = await env.SERVERINFO.get(key);
-    if (value) return new Response(value, { headers: { "Content-Type": "application/json" } });
+    if (value) {
+      if (isCnVoice) value = patchCnVoice(value);
+      return new Response(value, { headers: { "Content-Type": "application/json" } });
+    }
 
     const upstream = await fetch("https://yostar-serverinfo.bluearchiveyostar.com/" + key);
     if (!upstream.ok) return upstream;
@@ -29,6 +57,7 @@ export default {
     }
     value = JSON.stringify(serverinfo, null, 2);
     ctx.waitUntil(env.SERVERINFO.put(key, value));
+    if (isCnVoice) value = patchCnVoice(value);
     return new Response(value, { headers: { "Content-Type": "application/json" } });
   },
 };
