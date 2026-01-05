@@ -23,9 +23,28 @@ function patchCnVoice(jsonString) {
 
 export default {
   async fetch(request, env, ctx) {
-    const key = new URL(request.url).pathname.slice(1);
-    const hostname = new URL(request.url).hostname;
+    const url = new URL(request.url);
+    const key = url.pathname.slice(1);
+    const hostname = url.hostname;
+    const emergency = request.headers.has("Emergency");
     const isCnVoice = hostname === "cn-voice.yostar-serverinfo.bluearchive.cafe";
+
+    if (emergency) {
+      const upstream = await fetch("https://yostar-serverinfo.bluearchiveyostar.com/" + key);
+      if (!upstream.ok) return upstream;
+
+      let serverinfo = await upstream.json();
+      for (const connectionGroup of serverinfo.ConnectionGroups || []) {
+        if (connectionGroup.ManagementDataUrl) {
+          connectionGroup.ManagementDataUrl = connectionGroup.ManagementDataUrl.replace(
+            "prod-noticeindex.bluearchiveyostar.com",
+            "prod-noticeindex.bluearchive.cafe"
+          );
+        }
+      }
+      return new Response(JSON.stringify(serverinfo, null, 2), { headers: { "Content-Type": "application/json" } });
+    }
+
     if (!key || key.includes("/") || !key.startsWith("r") || !key.endsWith(".json"))
       return await fetch("https://yostar-serverinfo.bluearchiveyostar.com/" + key);
 
