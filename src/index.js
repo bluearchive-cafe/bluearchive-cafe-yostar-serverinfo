@@ -1,54 +1,43 @@
 export default {
     async fetch(request, env, ctx) {
-        const url = new URL(request.url);
-        const key = url.pathname.slice(1);
+        const key = new URL(request.url).pathname.slice(1);
+        const upstream = "https://yostar-serverinfo.bluearchiveyostar.com/" + key;
+        const cafeDomain = "bluearchive.cafe";
+        const yostarDomain = "bluearchiveyostar.com";
+        const cafeAttributes = `Path=/; Domain=${cafeDomain}; Max-Age=2147483647`;
+        const yostarAttributes = `Path=/; Domain=${yostarDomain}; Max-Age=2147483647`;
         const headers = new Headers({ "Content-Type": "application/json; charset=utf-8" });
-        const emergency = request.headers.has("Emergency");
 
-        if (emergency) {
-            const upstream = await fetch("https://yostar-serverinfo.bluearchiveyostar.com/" + key);
-            if (!upstream.ok) return upstream;
+        if (!key || key.includes("/") || !key.startsWith("r") || !key.endsWith(".json")) return await fetch(upstream);
 
-            let serverinfo = await upstream.json();
-            for (const connectionGroup of serverinfo.ConnectionGroups || []) {
-                if (connectionGroup.ManagementDataUrl) {
-                    connectionGroup.ManagementDataUrl = connectionGroup.ManagementDataUrl.replace(
-                        "prod-noticeindex.bluearchiveyostar.com",
-                        "prod-noticeindex.bluearchive.cafe"
-                    );
-                }
-            }
-            return new Response(JSON.stringify(serverinfo, null, 2), { headers });
-        }
-
-        if (!key || key.includes("/") || !key.startsWith("r") || !key.endsWith(".json"))
-            return await fetch("https://yostar-serverinfo.bluearchiveyostar.com/" + key);
-
+        let serverinfo;
         let value = await env.SERVERINFO.get(key);
-        if (value) return new Response(value, { headers });
-
-        const upstream = await fetch("https://yostar-serverinfo.bluearchiveyostar.com/" + key);
-        if (!upstream.ok) return upstream;
-
-        let serverinfo = await upstream.json();
-        for (const connectionGroup of serverinfo.ConnectionGroups || []) {
-            if (connectionGroup.ManagementDataUrl) {
-                connectionGroup.ManagementDataUrl = connectionGroup.ManagementDataUrl.replace(
-                    "prod-noticeindex.bluearchiveyostar.com",
-                    "prod-noticeindex.bluearchive.cafe"
-                );
-            }
-            for (const overrideGroup of connectionGroup.OverrideConnectionGroups || []) {
-                if (overrideGroup.Name !== "1.0" && overrideGroup.AddressablesCatalogUrlRoot) {
-                    overrideGroup.AddressablesCatalogUrlRoot = overrideGroup.AddressablesCatalogUrlRoot.replace(
-                        "prod-clientpatch.bluearchiveyostar.com",
-                        "prod-clientpatch.bluearchive.cafe"
-                    );
-                }
-            }
+        if (value) serverinfo = JSON.parse(value); else {
+            serverinfo = await (await fetch(upstream)).json();
+            const ConnectionGroup = serverinfo.ConnectionGroups[0];
+            ConnectionGroup.ManagementDataUrl = ConnectionGroup.ManagementDataUrl.replace(yostarDomain, cafeDomain);
+            value = JSON.stringify(serverinfo, null, 2);
+            await env.SERVERINFO.put(key, value);
         }
-        value = JSON.stringify(serverinfo, null, 2);
-        ctx.waitUntil(env.SERVERINFO.put(key, value));
-        return new Response(value, { headers });
+
+        if ((request.headers.get("User-Agent") || "").includes("BestHTTP")) {
+            let uuid = request.headers.get("Cookie")?.split("uuid=")?.[1]?.split(";")?.[0];
+            let preference = uuid && JSON.parse(await env.PREFERENCE.get(uuid) || "null");
+            if (!preference) {
+                uuid = crypto.randomUUID();
+                preference = { table: "cn", asset: "jp", media: "jp" };
+                await env.PREFERENCE.put(uuid, JSON.stringify(preference));
+                headers.append("Set-Cookie", `uuid=${uuid}; ${cafeAttributes}`);
+                headers.append("Set-Cookie", `uuid=${uuid}; ${yostarAttributes}`);
+            }
+            const managementDataPath = `/${uuid}`;
+            const addressableCatalogPath = `/table=${preference.table}/asset=${preference.asset}/media=${preference.media}`;
+            const ConnectionGroup = serverinfo.ConnectionGroups[0];
+            const OverrideConnectionGroup = serverinfo.ConnectionGroups[0].OverrideConnectionGroups[1]
+            ConnectionGroup.ManagementDataUrl = ConnectionGroup.ManagementDataUrl.replace(cafeDomain, cafeDomain + managementDataPath);
+            OverrideConnectionGroup.AddressablesCatalogUrlRoot = OverrideConnectionGroup.AddressablesCatalogUrlRoot.replace(yostarDomain, cafeDomain + addressableCatalogPath);
+        }
+
+        return new Response(JSON.stringify(serverinfo, null, 2), { headers });
     },
 };

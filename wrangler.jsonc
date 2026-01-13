@@ -10,6 +10,10 @@
 		{
 			"binding": "SERVERINFO",
 			"id": "9d35490828544a4394113ffda0b0e390"
+		},
+		{
+			"binding": "PREFERENCE",
+			"id": "6b8c26e909cc4539a071e747d4fabd8b"
 		}
 	]
 }
