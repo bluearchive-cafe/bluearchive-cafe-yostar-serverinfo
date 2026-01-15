@@ -42,8 +42,9 @@ export default {
         const managementDataPath = uuid ? `/${uuid}` : "";
         const addressableCatalogPath = preference ? `/table=${preference.table}/asset=${preference.asset}/media=${preference.media}` : "";
         ConnectionGroup.ManagementDataUrl = ConnectionGroup.ManagementDataUrl.replace(yostarDomain, cafeDomain + managementDataPath);
-        OverrideConnectionGroup.AddressablesCatalogUrlRoot = OverrideConnectionGroup.AddressablesCatalogUrlRoot.replace(yostarDomain, cafeDomain + addressableCatalogPath);
-        if (preference?.dev === "true") OverrideConnectionGroup.AddressablesCatalogUrlRoot = OverrideConnectionGroup.AddressablesCatalogUrlRoot.replace("prod-clientpatch", "dev-clientpatch");
+        OverrideConnectionGroup.AddressablesCatalogUrlRoot = preference?.dev === "true"
+            ? OverrideConnectionGroup.AddressablesCatalogUrlRoot.replace(`prod-clientpatch.${yostarDomain}`, `dev-clientpatch.${cafeDomain}`)
+            : OverrideConnectionGroup.AddressablesCatalogUrlRoot.replace(yostarDomain, cafeDomain + addressableCatalogPath);
         return new Response(JSON.stringify(serverinfo, null, 2), { headers });
     },
 };
