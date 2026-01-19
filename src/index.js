@@ -1,17 +1,39 @@
 export default {
     async fetch(request, env, ctx) {
-        const upstream = `https://yostar-serverinfo.bluearchiveyostar.com${new URL(request.url).pathname}`;
+        const key = new URL(request.url).pathname.slice(1);
+        const upstream = `https://yostar-serverinfo.bluearchiveyostar.com/${key}`;
         const cafeDomain = "bluearchive.cafe";
         const yostarDomain = "bluearchiveyostar.com";
         const cafeAttributes = `Path=/; Domain=${cafeDomain}; Max-Age=2147483647`;
         const yostarAttributes = `Path=/; Domain=${yostarDomain}; Max-Age=2147483647`;
         const headers = new Headers({ "Content-Type": "application/json; charset=utf-8" });
 
+        let serverinfo;
         let response = await env.ASSETS.fetch(request);
-        if (!response.ok) response = await fetch(upstream);
-        if (!response.ok) return response;
+        if (!response.ok) {
+            response = await fetch(upstream);
+            if (response.ok) {
+                serverinfo = await response.json();
+                ctx.waitUntil(
+                    fetch(
+                        `https://api.github.com/repos/bluearchive-cafe/bluearchive-cafe-yostar-serverinfo/contents/public/${key}`,
+                        {
+                            method: "PUT",
+                            headers: {
+                                "Authorization": `token ${env.GITHUB_TOKEN}`,
+                                "Content-Type": "application/json",
+                                "User-Agent": "Cloudflare Workers"
+                            },
+                            body: JSON.stringify({
+                                "message": "提交服务器信息",
+                                "content": btoa(JSON.stringify(serverinfo, null, 2))
+                            })
+                        }
+                    )
+                );
+            } else return response;
+        }
 
-        const serverinfo = await response.json();
         if ((request.headers.get("User-Agent") || "").includes("BestHTTP")) {
             let uuid = request.headers.get("Cookie")?.split("uuid=")?.[1]?.split(";")?.[0];
             let preference = uuid && JSON.parse(await env.PREFERENCE.get(uuid) || "null");
