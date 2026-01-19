@@ -20,12 +20,5 @@
 			"binding": "PREFERENCE",
 			"id": "6b8c26e909cc4539a071e747d4fabd8b"
 		}
-	],
-	"secrets_store_secrets": [
-		{
-			"binding": "GITHUB_TOKEN",
-			"store_id": "74a031b140214bb5819c96d7a515f2e0",
-			"secret_name": "bluearchive-cafe-github-token"
-		}
 	]
 }
