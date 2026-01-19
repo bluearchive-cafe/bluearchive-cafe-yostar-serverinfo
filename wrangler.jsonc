@@ -3,14 +3,19 @@
 	"name": "bluearchive-cafe-yostar-serverinfo",
 	"main": "src/index.js",
 	"compatibility_date": "2025-12-25",
+	"compatibility_flags": [
+		"nodejs_compat",
+		"global_fetch_strictly_public"
+	],
+	"assets": {
+		"directory": "./public",
+		"binding": "ASSETS",
+		"run_worker_first": true
+	},
 	"observability": {
 		"enabled": true
 	},
 	"kv_namespaces": [
-		{
-			"binding": "SERVERINFO",
-			"id": "9d35490828544a4394113ffda0b0e390"
-		},
 		{
 			"binding": "PREFERENCE",
 			"id": "6b8c26e909cc4539a071e747d4fabd8b"
