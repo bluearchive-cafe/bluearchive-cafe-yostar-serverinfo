@@ -15,21 +15,11 @@ export default {
             if (response.ok) {
                 serverinfo = await response.json();
                 ctx.waitUntil(
-                    fetch(
-                        `https://api.github.com/repos/bluearchive-cafe/bluearchive-cafe-yostar-serverinfo/contents/public/${key}`,
-                        {
-                            method: "PUT",
-                            headers: {
-                                "Authorization": `token ${env.GITHUB_TOKEN}`,
-                                "Content-Type": "application/json",
-                                "User-Agent": "Cloudflare Workers"
-                            },
-                            body: JSON.stringify({
-                                "message": `提交游戏资源信息：${key}`,
-                                "content": btoa(JSON.stringify(serverinfo, null, 2))
-                            })
-                        }
-                    )
+                    fetch(`https://api.github.com/repos/bluearchive-cafe/bluearchive-cafe-yostar-serverinfo/contents/public/${key}`, {
+                        method: "PUT",
+                        headers: { "Authorization": `Bearer ${env.GITHUB_TOKEN}`, "User-Agent": "Cloudflare Workers" },
+                        body: JSON.stringify({ "message": `提交游戏资源信息：${key}`, "content": btoa(JSON.stringify(serverinfo, null, 2)) })
+                    })
                 );
             } else return response;
         } else serverinfo = await response.json();
