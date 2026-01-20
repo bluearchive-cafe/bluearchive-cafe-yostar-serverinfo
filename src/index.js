@@ -26,11 +26,13 @@ export default {
 
         if ((request.headers.get("User-Agent") || "").includes("BestHTTP") && !request.headers.has("Emergency")) {
             let uuid = request.headers.get("Cookie")?.split("uuid=")?.[1]?.split(";")?.[0];
-            let preference = uuid && JSON.parse(await env.PREFERENCE.get(uuid) || "null");
+            let preference = uuid ? await env.PREFERENCE.prepare(`SELECT * FROM preference WHERE uuid = ?`).bind(uuid).first() : null;
             if (!preference) {
                 uuid = crypto.randomUUID();
-                preference = { table: "cn", asset: "jp", media: "jp" };
-                await env.PREFERENCE.put(uuid, JSON.stringify(preference));
+                try {
+                    await env.PREFERENCE.prepare(`INSERT OR IGNORE INTO preference (uuid) VALUES (?)`).bind(uuid).run();
+                } catch (e) { console.error("汉化偏好设置写入失败：", e); }
+                preference = { dev: "false", text: "true", image: "false", voice: "false" };
                 headers.append("Set-Cookie", `uuid=${uuid}; ${cafeAttributes}`);
                 headers.append("Set-Cookie", `uuid=${uuid}; ${yostarAttributes}`);
             }
@@ -39,7 +41,7 @@ export default {
             ConnectionGroup.ManagementDataUrl = ConnectionGroup.ManagementDataUrl.replace(yostarDomain, `${cafeDomain}/${uuid}`);
             OverrideConnectionGroup.AddressablesCatalogUrlRoot = preference.dev === "true"
                 ? OverrideConnectionGroup.AddressablesCatalogUrlRoot.replace(`prod-clientpatch.${yostarDomain}`, `dev-clientpatch.${cafeDomain}`)
-                : OverrideConnectionGroup.AddressablesCatalogUrlRoot.replace(yostarDomain, `${cafeDomain}/table=${preference.table}/asset=${preference.asset}/media=${preference.media}`);
+                : OverrideConnectionGroup.AddressablesCatalogUrlRoot.replace(yostarDomain, `${cafeDomain}/text=${preference.text}/image=${preference.image}/voice=${preference.voice}`);
         }
 
         return new Response(JSON.stringify(serverinfo, null, 2), { headers });
