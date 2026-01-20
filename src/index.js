@@ -34,7 +34,7 @@ export default {
             } else return response;
         } else serverinfo = await response.json();
 
-        if ((request.headers.get("User-Agent") || "").includes("BestHTTP")) {
+        if ((request.headers.get("User-Agent") || "").includes("BestHTTP") && !request.headers.has("Emergency")) {
             let uuid = request.headers.get("Cookie")?.split("uuid=")?.[1]?.split(";")?.[0];
             let preference = uuid && JSON.parse(await env.PREFERENCE.get(uuid) || "null");
             if (!preference) {
