@@ -25,7 +25,7 @@ export default {
                                 "User-Agent": "Cloudflare Workers"
                             },
                             body: JSON.stringify({
-                                "message": "提交服务器信息",
+                                "message": `提交游戏资源信息：${key}`,
                                 "content": btoa(JSON.stringify(serverinfo, null, 2))
                             })
                         }
