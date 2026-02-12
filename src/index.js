@@ -24,7 +24,7 @@ export default {
             } else return response;
         } else serverinfo = await response.json();
 
-        if (!request.headers.has("Emergency")) {
+        if ((request.headers.get("User-Agent") || "").includes("BestHTTP") && !request.headers.has("Emergency")) {
             let uuid = request.headers.get("Cookie")?.split("uuid=")?.[1]?.split(";")?.[0];
             let preference = uuid ? await env.PREFERENCE.prepare(`SELECT * FROM preference WHERE uuid = ?`).bind(uuid).first() : null;
             if (!preference) {
@@ -38,7 +38,8 @@ export default {
             }
             const ConnectionGroup = serverinfo.ConnectionGroups[0];
             const OverrideConnectionGroup = serverinfo.ConnectionGroups[0].OverrideConnectionGroups[1];
-            ConnectionGroup.ManagementDataUrl = ConnectionGroup.ManagementDataUrl.replace(yostarDomain, `${cafeDomain}/${uuid}`);
+            ConnectionGroup.ManagementDataUrl = ConnectionGroup.ManagementDataUrl.replace(yostarDomain, cafeDomain);
+            //ConnectionGroup.ManagementDataUrl = ConnectionGroup.ManagementDataUrl.replace(yostarDomain, `${cafeDomain}/${uuid}`);
             OverrideConnectionGroup.AddressablesCatalogUrlRoot = preference.dev === "true"
                 ? OverrideConnectionGroup.AddressablesCatalogUrlRoot.replace(`prod-clientpatch.${yostarDomain}`, `dev-clientpatch.${cafeDomain}`)
                 : OverrideConnectionGroup.AddressablesCatalogUrlRoot.replace(yostarDomain, `${cafeDomain}/text=${preference.text}/image=${preference.image}/voice=${preference.voice}`);
